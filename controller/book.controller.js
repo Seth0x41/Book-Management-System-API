@@ -1,7 +1,7 @@
 
 var queries = require('../db/queries');
 var dbConnection = require('../db/connection');
-
+var validation = require('../Util/validation')
 exports.getBookList=async (req,res)=>{
 try{
     var bookListQuery = queries.queryList.GET_BOOK_LIST;
@@ -30,7 +30,7 @@ exports.getBookDetailsList=async (req,res)=>{
 
 exports.saveBook = async (req,res)=>{
 try{
-    var createdBy=req.body.createdBy
+    var created_by=req.body.createdBy
     let created_on = new Date();
     let bookTitle = req.body.bookTitle;
     let bookDescription = req.body.bookDescription;
@@ -38,12 +38,19 @@ try{
     let bookAuthor = req.body.bookAuthor;
     let bookPages = req.body.bookPages;
     let bookStoreCode = req.body.bookStoreCode;
+    let bookIsban = req.body.bookIsban;
+    if(validation.isbnValidator(bookIsban) == false){ return res.status(500).send({error : "invalid isban!"}); }
+
+    var isStoreCodeExist = queries.queryList.IS_STORE_EXIST;
+    var result = await dbConnection.dbQuery(isStoreCodeExist,[bookStoreCode]);
+    var exists = result.rows[0].exists;
+     if(exists == false){ return res.status(500).send({error : "Store Code Doesn't exist"}); }
 
     if(!bookTitle || !bookAuthor || !bookPublisher ||!bookStoreCode){
         return res.status(500).send({error : "Please Fill All Required Objects!"});
 
     }
-    values=[bookTitle,bookDescription,bookAuthor,bookPublisher,bookPages,bookStoreCode,created_on,created_by]
+    values=[bookTitle,bookDescription,bookAuthor,bookPublisher,bookPages,bookStoreCode,created_on,created_by,bookIsban]
     let saveQueries=queries.queryList.SAVE_BOOK_QUERY;
     await dbConnection.dbQuery(saveQueries,values);
     return res.status(200).send("Book added!");
@@ -56,7 +63,7 @@ try{
     
 exports.editBook = async (req,res)=>{
     try{
-        var createdBy=req.body.createdBy
+        var created_by=req.body.createdBy
         let created_on = new Date();
         let bookId= req.body.bookId;
         let bookTitle = req.body.bookTitle;
@@ -65,12 +72,17 @@ exports.editBook = async (req,res)=>{
         let bookAuthor = req.body.bookAuthor;
         let bookPages = req.body.bookPages;
         let bookStoreCode = req.body.bookStoreCode;
-    
+        let bookIsban = req.body.bookIsban;
+        if(validation.isbnValidator(bookIsban) == false){ return res.status(500).send({error : "invalid isban!"}); }
+        var isStoreCodeExist = queries.queryList.IS_STORE_EXIST;
+        var result = await dbConnection.dbQuery(isStoreCodeExist,[bookStoreCode]);
+        var exists = result.rows[0].exists;
+         if(exists == false){ return res.status(500).send({error : "Store Code Doesn't exist"}); }
         if(!bookId||!bookTitle || !bookAuthor || !bookPublisher ||!bookStoreCode){
             return res.status(500).send({error : "Please Fill All Required Objects!"});
     
         }
-        values=[bookTitle,bookDescription,bookAuthor,bookPublisher,bookPages,bookStoreCode,created_on,created_by,bookId]
+        values=[bookTitle,bookDescription,bookAuthor,bookPublisher,bookPages,bookStoreCode,created_on,created_by,bookIsban,bookId]
         let EditQuery=queries.queryList.EDIT_BOOK_QUERY;
         await dbConnection.dbQuery(EditQuery,values);
         return res.status(200).send("Book Updated!");
@@ -86,6 +98,7 @@ exports.editBook = async (req,res)=>{
         try{
 
             let bookId= req.params.bookId;
+            
             if(!bookId){
                 return res.status(500).send({error : "Please add book id"});
         

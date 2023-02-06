@@ -63,6 +63,7 @@ exports.deleteStore = async (req,res)=>{
     try{
 
         let storeId= req.params.storeId;
+        
         if(!storeId){
             return res.status(500).send({error : "Please add store id"});
     
